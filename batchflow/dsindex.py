@@ -4,10 +4,10 @@ import sys
 import math
 import glob
 from collections.abc import Iterable
-import tqdm
 import numpy as np
 
 from .base import Baseset
+from .notifier import TqdmNotifier, TqdmNotebookNotifier
 
 
 class DatasetIndex(Baseset):
@@ -481,9 +481,9 @@ class DatasetIndex(Baseset):
             if callable(bar):
                 iter_params['bar'] = bar(total=total)
             elif bar == 'n':
-                iter_params['bar'] = tqdm.tqdm_notebook(total=total)
+                iter_params['bar'] = TqdmNotebookNotifier(total=total)
             else:
-                iter_params['bar'] = tqdm.tqdm(total=total)
+                iter_params['bar'] = TqdmNotifier(total=total)
 
         while True:
             if n_epochs is not None and iter_params['_n_epochs'] >= n_epochs:

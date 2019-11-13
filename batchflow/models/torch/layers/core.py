@@ -1,6 +1,7 @@
 """ Contains common layers """
 import inspect
 import numpy as np
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -492,3 +493,79 @@ class PixelShuffle(nn.PixelShuffle):
 class SubPixelConv(PixelShuffle):
     """ An alias for PixelShuffle """
     pass
+
+class ChannelSELayer(nn.Module):
+    """ Channel squeeze and excitation block.
+
+      Hu J. et al. "`Squeeze-and-Excitation Networks <https://arxiv.org/abs/1709.01507>`_
+
+    Parameters
+    ----------
+    inputs : torch.Tensor, torch.nn.Module, numpy.ndarray or tuple
+        shape or an example of input tensor to infer shape
+    ratio : int
+        squeeze ratio for the number of filters. Default is 2
+
+    Returns
+    -------
+    torch.nn.Module
+    """
+
+    def __init__(self, inputs=None, ratio=2):
+        super().__init__()
+
+        num_channels = get_num_channels(inputs)
+        from .conv_block import ConvBlock # can't be imported in the file beginning due to recursive imports
+        self.cse = ConvBlock(inputs=inputs, layout='Vfafa', activation=['relu', 'sigmoid'],
+                             units=[num_channels//ratio, num_channels])
+        self.output_shape = get_shape(inputs)
+
+    def forward(self, x):
+        num_channels = get_num_channels(x)
+        ndims = get_num_dims(x)
+
+        squeeze_tensor = self.cse(x)
+        shape = [-1, num_channels] + [1] * (ndims)
+        return torch.mul(x, squeeze_tensor.view(shape))
+
+class SpatialSELayer(nn.Module):
+    """
+        Re-implementation of SE block -- squeezing spatially and exciting channel-wise described in:
+        *Roy et al., Concurrent Spatial and Channel Squeeze & Excitation in Fully Convolutional Networks, MICCAI 2018*
+    """
+
+    def __init__(self, inputs=None):
+        super().__init__()
+        from .conv_block import ConvBlock # can't be imported in the file beginning due to recursive imports
+        self.sse = ConvBlock(inputs=inputs, layout='ca', filters=1, kernel_size=1, activation='sigmoid')
+        self.output_shape = get_shape(inputs)
+
+    def forward(self, x):
+        squeeze_tensor = self.sse(x)
+        return torch.mul(x, squeeze_tensor)
+
+class ChannelSpatialSELayer(nn.Module):
+    """ Channel and Spatial squeeze and excitation block.
+
+     *Roy et al., Concurrent Spatial and Channel Squeeze & Excitation in Fully Convolutional Networks, MICCAI 2018*
+
+    Parameters
+    ----------
+    inputs : torch.Tensor, torch.nn.Module, numpy.ndarray or tuple
+        shape or an example of input tensor to infer shape
+    ratio : int
+        squeeze ratio for the number of filters. Default is 2
+
+    Returns
+    -------
+    torch.nn.Module
+    """
+
+    def __init__(self, inputs=None, ratio=2):
+        super().__init__()
+        self.cse = ChannelSELayer(inputs, ratio)
+        self.sse = SpatialSELayer(inputs)
+        self.output_shape = get_shape(inputs)
+
+    def forward(self, x):
+        return torch.add(self.cse(x), self.sse(x))

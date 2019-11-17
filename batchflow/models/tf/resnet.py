@@ -499,3 +499,93 @@ class ResNeXt152(ResNet):
         config = ResNet152.default_config()
         config['body/block/resnext'] = 32
         return config
+
+
+class SEResNet18(ResNet):
+    """ The SEResNet-18 architecture """
+    @classmethod
+    def default_config(cls):
+        config = ResNet18.default_config()
+        config['body/block/se_block/ratio'] = 16
+        return config
+
+
+class SEResNet34(ResNet):
+    """ The SEResNet-34 architecture """
+    @classmethod
+    def default_config(cls):
+        config = ResNet34.default_config()
+        config['body/block/se_block/ratio'] = 16
+        return config
+
+
+class SEResNet50(ResNet):
+    """ The SEResNet-50 architecture """
+    @classmethod
+    def default_config(cls):
+        config = ResNet50.default_config()
+        config['body/block/se_block/ratio'] = 16
+        return config
+
+
+class SEResNet101(ResNet):
+    """ The SEResNet-101 architecture """
+    @classmethod
+    def default_config(cls):
+        config = ResNet101.default_config()
+        config['body/block/se_block/ratio'] = 16
+        return config
+
+
+class SEResNet152(ResNet):
+    """ The SEResNet-152 architecture """
+    @classmethod
+    def default_config(cls):
+        config = ResNet152.default_config()
+        config['body/block/se_block/ratio'] = 16
+        return config
+
+
+class SEResNeXt18(ResNet):
+    """ The SEResNeXt-18 architecture """
+    @classmethod
+    def default_config(cls):
+        config = ResNeXt18.default_config()
+        config['body/block/se_block/ratio'] = 16
+        return config
+
+
+class SEResNeXt34(ResNet):
+    """ The SEResNeXt-34 architecture """
+    @classmethod
+    def default_config(cls):
+        config = ResNeXt34.default_config()
+        config['body/block/se_block/ratio'] = 16
+        return config
+
+
+class SEResNeXt50(ResNet):
+    """ The SEResNeXt-50 architecture """
+    @classmethod
+    def default_config(cls):
+        config = ResNeXt50.default_config()
+        config['body/block/se_block/ratio'] = 16
+        return config
+
+
+class SEResNeXt101(ResNet):
+    """ The SEResNeXt-101 architecture """
+    @classmethod
+    def default_config(cls):
+        config = ResNeXt101.default_config()
+        config['body/block/se_block/ratio'] = 16
+        return config
+
+
+class SEResNeXt152(ResNet):
+    """ The SEResNeXt-152 architecture """
+    @classmethod
+    def default_config(cls):
+        config = ResNeXt152.default_config()
+        config['body/block/se_block/ratio'] = 16
+        return config

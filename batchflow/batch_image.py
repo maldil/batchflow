@@ -157,7 +157,7 @@ class BaseImagesBatch(Batch):
         if fmt == 'image':
             return self._load_image(src, fmt=fmt, dst=dst)
         elif fmt == 'mask':
-            return self._load_mask(src=None, dst='masks')
+            return self._load_mask(src=src, dst=dst)
         return super().load(src=src, fmt=fmt, dst=dst, *args, **kwargs)
 
 

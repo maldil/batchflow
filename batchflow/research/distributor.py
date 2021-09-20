@@ -85,6 +85,12 @@ class DynamicQueue:
     def __getattr__(self, key):
         return getattr(self.queue, key)
 
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, d):
+        self.__dict__.update(d)
+
 class Worker:
     """ Worker to get tasks from queue and run executors.
 

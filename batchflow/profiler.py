@@ -79,7 +79,7 @@ class Profiler:
 
     def __getstate__(self):
         state = self.__dict__.copy()
-        state.pop('_profile_info_lock')
+        state.pop('_profile_info_lock', None)
         state['_profiler'] = None
         return state
 

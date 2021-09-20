@@ -342,7 +342,7 @@ class Research:
         else:
             self.loglevel = loglevel or 'error'
 
-        self.attach_env_meta(**(env_meta or {}))
+        # self.attach_env_meta(**(env_meta or {}))
         self.create_logger()
         self.logger.info("Research is starting")
 

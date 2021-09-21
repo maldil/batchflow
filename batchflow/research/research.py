@@ -231,7 +231,7 @@ class Research:
 
     def run(self, name=None, workers=1, branches=1, n_iters=None, devices=None, executor_class=Executor,
             dump_results=True, parallel=True, executor_target='threads', loglevel=None, bar=True, detach=False,
-            debug=False, finalize=True, env_meta=None, seed=None, profile=False,
+            debug=False, finalize=True, env_meta=True, seed=None, profile=False,
             memory_ratio=None, n_gpu_checks=3, gpu_check_delay=5):
         """ Run research.
 
@@ -271,8 +271,9 @@ class Research:
             `parallel=False` and `executor_target='for'`, by default False.
         finalize : bool, optional
             continue experiment iteration after exception in some unit or not, by default True.
-        env_meta : dict or None
-            kwargs for :meth:`.Research.attach_env_meta`.
+        env_meta : dict or bool
+            if bool, attach environment meta or not
+            if dict, kwargs for :meth:`.Research.attach_env_meta`.
         seed : bool or int or object with a seed sequence attribute
             see :meth:`~batchflow.utils_random.make_seed_sequence`.
         profile : bool, optional
@@ -342,7 +343,10 @@ class Research:
         else:
             self.loglevel = loglevel or 'error'
 
-        # self.attach_env_meta(**(env_meta or {}))
+        if env_meta is True:
+            self.attach_env_meta()
+        elif isinstance(env_meta, dict):
+            self.attach_env_meta(**env_meta)
         self.create_logger()
         self.logger.info("Research is starting")
 

@@ -207,32 +207,49 @@ class SomeObject:
     def __init__(self):
         self.attr = 0
         self.battr = 1
+        self.other = OtherObject()
         self.item = pd.DataFrame({'item_0': [1, 2, 3],
                                   'item_1': [3, 2, 1],
                                   'item_2': [-1, -1, -1],
-                                  'item_3': [-1, -1, -1]})
+                                  'item_3': [-1, -1, -1],
+                                  'item_4': [0, 0, 0]})
 
     def __getitem__(self, key):
         return self.item[key]
 
     def __setitem__(self, key, value):
-        print(key, value)
-        self.item[key] = np.atleast_2d(value)
+        self.item[key] = value
 
-@pytest.mark.parametrize('batch_length', [1, 2])
+class OtherObject(SomeObject):
+    def __init__(self):
+        self.attr_one = -1
+        self.attr_two = 100
+        self.item = pd.DataFrame({'item_one': [4, 5],
+                                  'item_two': [7, 6]})
+
+@pytest.mark.parametrize('batch_length', [1, 2, 3])
 def test_ba(batch_length):
     """Test behaivour of BA named expression for all sorts of read-write options.
 
     batch_length
         The length of array with components.
     """
-    pipeline = (Dataset(1).p
-        .add_components('object', [SomeObject()]*batch_length)
+    pipeline = (Dataset(batch_length).p
+        .add_components('object', [SomeObject() for i in range(batch_length)])
         .update(BA('object').attr, BA('object').battr)
-        .update(BA('object')['item_0'], [10]*batch_length)
-        .update(BA('object')[['item_2', 'item_3']], BA('object')[['item_0', 'item_1']])
+        .update(BA('object')['item_0'], [[10, 10, 10]] * batch_length)
+        .update(BA('object')[['item_1', 'item_2']], [[[15, 15], [15, 15], [15, 15]]] * batch_length)
+        .update(BA('object')[['item_3', 'item_4']], BA('object')[['item_1', 'item_2']])
+        # multiple getattr and getitem
+        .update(BA('object').other.attr_one, BA('object').other.attr_two)
+        .update(BA('object').other['item_one'], BA('object').other['item_two'])
     )
-    batch = pipeline.next_batch(1)
-    assert batch.object[0].attr == 1
-    assert sum(batch.object[0]['item_0'] == 10) == 3
-    assert np.allclose(batch.object[0][['item_2', 'item_3']], batch.object[0][['item_0', 'item_1']])
+    batch = pipeline.next_batch(batch_length)
+
+    for i in range(batch_length):
+        assert batch.object[i].attr == 1
+        assert (batch.object[i]['item_0'] == 10).sum() == 3
+        assert (batch.object[i][['item_1', 'item_2']] == 15).values.sum() == 6
+        assert np.allclose(batch.object[i][['item_3', 'item_4']], batch.object[i][['item_1', 'item_2']])
+        assert batch.object[i].other.attr_one == batch.object[i].other.attr_two
+        assert np.allclose(batch.object[i].other['item_one'], batch.object[i].other['item_two'])

@@ -33,7 +33,7 @@ def eval_expr(expr, no_eval=None, **kwargs):
     if isinstance(expr, NamedExpression):
         try:
             _expr = expr.get(**kwargs)
-            if isinstance(expr, W):
+            if isinstance(expr, (W, L)):
                 expr = _expr
             elif isinstance(_expr, (NamedExpression, list, tuple, dict, Config)):
                 expr = eval_expr(_expr, **kwargs)
@@ -326,6 +326,13 @@ class NamedExpression(metaclass=MetaNamedExpression):
     def __getstate__(self):
         return self.__dict__
 
+def _isinstance(obj, _type):
+    if isinstance(obj, AlgebraicNamedExpression):
+        _a = _isinstance(obj.a, _type)
+        _b = _isinstance(obj.b, _type)
+        return _a or _b
+    return isinstance(obj, _type)
+
 class AlgebraicNamedExpression(NamedExpression):
     """ Algebraic expression over named expressions """
     def __init__(self, op=None, a=None, b=None, c=None):
@@ -340,7 +347,8 @@ class AlgebraicNamedExpression(NamedExpression):
         if self.op == '#call':
             a = eval_expr(self.a, _call=False, **kwargs)
         else:
-            a = eval_expr(self.a, **kwargs)
+            _eval = ({'_eval': False} if _isinstance(self.a, BA) else {})
+            a = eval_expr(self.a, **{**kwargs, **_eval})
         b = eval_expr(self.b, **kwargs)
         c = eval_expr(self.c, **kwargs)
         if self.op in UNARY_OPS:
@@ -355,8 +363,8 @@ class AlgebraicNamedExpression(NamedExpression):
             raise ValueError("Assigning a value to an arithmetic expression is not possible", self)
 
         _, kwargs = self._get_params(**kwargs)
-
-        a = eval_expr(self.a, **kwargs)
+        _eval = ({'_eval': False} if _isinstance(self.a, BA) else {})
+        a = eval_expr(self.a, **{**kwargs, **_eval})
         b = eval_expr(self.b, **kwargs)
         if self.op == '#attr':
             setattr(a, b, value)
@@ -453,33 +461,40 @@ class BA(B):
         """ Returns an instance of the class that allows one to access attributes or items
         stored in the batch component.
         """
-        return Component(super().get(**kwargs))
+        return L(name=super().get(**kwargs))
 
-class Component:
+class L(B):
     """ Implements an interface for accessing attributes or items of all elements from an array of objects. """
-    def __init__(self, component):
-        self.component = component
+    def __init__(self, name=None):
+        self.name = name
+
+    def get(self, _eval=None, **kwargs):
+        if isinstance(self.name, str):
+            return super().get(**kwargs)
+
+        if _eval is None or _eval:
+            return self.name
+        return L(self.name)
 
     def __getattr__(self, name):
-        return np.array([getattr(val, name) for val in self.component])
+        return L([getattr(val, name) for val in self.name])
 
     def __setattr__(self, name, value):
-        if name == 'component':
+        if name == 'name':
             self.__dict__[name] = value
         else:
-            if len(self.component) != len(value):
+            if len(self.name) != len(value):
                 raise ValueError("Given `value`'s length must be equal to batch size.")
-            for item, val in zip(self.component, value):
+            for item, val in zip(self.name, value):
                 setattr(item, name, val)
 
     def __getitem__(self, key):
-        return np.array([val[key] for val in self.component])
+        return L([val[key] for val in self.name])
 
     def __setitem__(self, key, value):
-        key = to_list(key)
-        if len(self.component) != len(value):
+        if len(self.name) != len(value):
             raise ValueError("Given `value`'s length must be equal to batch size.")
-        for item, val in zip(self.component, value):
+        for item, val in zip(self.name, value):
             item[key] = val
 
 class PipelineNamedExpression(NamedExpression):
